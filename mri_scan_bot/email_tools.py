@@ -35,3 +35,32 @@ def save_attachment(msg, download_folder="/tmp"):
             fp.write(part.get_payload(decode=True))
             fp.close()
     return att_path
+
+
+def extract_parameters_from_body(body):
+    
+    the_dict = {'age':None,
+                'artox':None,
+                'hct':None,
+                'status':None,
+                'gender':None,
+                'scandate':None,
+                'mrid':None,
+                'studyid':None}
+    
+    no_spaces = body.replace(' ', '')
+    lowered = no_spaces.lower()
+    lines = lowered.split('\n')
+    parts = [i.split(':') for i in lines]
+    cleaner = [i for i in parts if len(i)==2]
+    
+    for key,val in cleaner:
+        if key in the_dict:
+            the_dict[key] = val
+            
+    return the_dict
+    
+    
+def params_to_processing_call(params):
+    pass    
+

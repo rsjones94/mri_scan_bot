@@ -1,0 +1,11 @@
+Hi! I've set up the processing sequence you've requested. Here's what I understand you need done:
+
+Processing type: <PROCESSING>
+Parameters: <PARAMS>
+Function call: <CALL>
+
+I'm starting on this now, and it should take about 15 minutes. When processing is complete, you'll receive another email containing a report and any generated files appropriate to the processing requested.
+
+If you have any questions or issues, please contact Sky at sky.jones@vumc.org. Thanks!
+
+<i>I am a bot. You can get more info by emailing me and putting "Info" in the subject line. Please do not send me any non-deidentified patient info.</i>

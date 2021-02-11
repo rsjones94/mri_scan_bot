@@ -1,8 +1,4 @@
-Hi! This message is to confirm your processing request. Here's what I understand you need done:
-
-<PROCESSING_REQUESTED>
-
-Processing should take about 15 minutes, after which you will receive another email containing a report and any generated files appropriate to the processing requested. However, if many requests are received at once it may take longer to complete processing. Be patient!
+Hi! This message is to confirm your processing request. I'm reviewing your specifications and will send you an email when processing has begun. If I have a lot of processing queued this may take a while, but normally you'll receive that email in just a moment.
 
 If you have any questions or issues, please contact Sky at sky.jones@vumc.org. Thanks!
 
