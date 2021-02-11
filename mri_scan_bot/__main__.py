@@ -17,6 +17,7 @@ import zipfile
 import shutil
 import glob
 import datetime
+import subprocess
 
 from imapclient import IMAPClient
 import yagmail
@@ -74,6 +75,12 @@ with IMAPClient(HOST, ssl=True) as server:
         all_uids.append(uid)
         
     print('\n')
+    
+    
+    server.add_flags(all_uids, ['SEEN'])
+    
+    old_messages = server.search(f'BEFORE {before_date}')
+    server.delete_messages(old_messages)
         
     success_uids_info = []
     success_uids_jobs = []  
@@ -186,14 +193,23 @@ with IMAPClient(HOST, ssl=True) as server:
             
         provided_file_names = os.listdir(acquired_folder)
         
-        trust_source_pattern = '*SOURCE*TRUST*VEIN*'
-        trust_pattern = '*TRUST*VEIN*'
+        ext = ''
+        if 'parrec' in subj.lower():
+            ext = '.REC'
+        elif 'nifti' in subj.lower():
+            ext = '.nii.gz'
+        else:
+            problems = problems + '\nYou requested processing but did not specify what type of file you are providing. Put "nifti" (.nii.gz) or "parrec" (.PAR and .REC) in your subject line.'
+            can_run = False
         
-        asl_m0_pattern = '*ASL*M0*'
-        asl_source_pattern = '*SOURCE*ASL*PLD*LD*'
-        asl_pattern = '*ASL*PLD*LD*'
+        trust_source_pattern = f'*SOURCE*TRUST*VEIN*{ext}'
+        trust_pattern = f'*TRUST*VEIN*{ext}'
         
-        t1_pattern = '*T1*'
+        asl_m0_pattern = f'*ASL*M0*{ext}'
+        asl_source_pattern = f'*SOURCE*ASL*PLD*LD*{ext}'
+        asl_pattern = f'*ASL*PLD*LD*{ext}'
+        
+        t1_pattern = f'*T1*{ext}'
         
         if process_trust:
             trust_source_matches = glob.glob(os.path.join(acquired_folder, trust_source_pattern))
@@ -208,10 +224,12 @@ with IMAPClient(HOST, ssl=True) as server:
                 can_run = False
             if not job_params['hct']:
                 problems = problems + '\nYou requested TRUST processing, but did not provide a hematocrit (in the body of your email, you need a line that ONLY contains "hct:[number from 0 to 1]")'
-                can_run = False  
+                can_run = False
+            """
             if not job_params['status']:
                 problems = problems + '\nYou requested TRUST processing, but did not provide a status (in the body of your email, you need a line that ONLY contains "status:[one of control, scd or anemia]")'
                 can_run = False
+            """
         
         if process_asl:
             asl_m0_matches = glob.glob(os.path.join(acquired_folder, asl_m0_pattern))
@@ -227,14 +245,14 @@ with IMAPClient(HOST, ssl=True) as server:
             if not len(t1_matches)==1:
                 problems = problems + f'\nYou requested ASL processing, but did not provide a correctly named T1 file - the patterns for the T1 is {t1_pattern}, and only one file matching this pattern can exist'
                 can_run = False
-                
+        format_str_scan = '%Y.%m.%d'
         # need to check validity of age, artox, hct, status, and scantime    
-        age = job_params['age']
-        if age:
+        dob = job_params['dob']
+        if dob:
             try:
-                float(age)
+                dob_dt_obj = datetime.datetime.strptime(dob, format_str_scan)
             except ValueError:
-                problems = problems + f'\nThe age you specified ({age}) cannot be coerced to a float. Make sure this entry is a number.'
+                problems = problems + f'\nThe date of birth you specified ({dob}) must be formatted as YYYY.mm.dd'
                 can_run = False
                 
         artox = job_params['artox']
@@ -265,18 +283,26 @@ with IMAPClient(HOST, ssl=True) as server:
             if status not in valid_statuses:
                 problems = problems + f'\nThe status you specified ({status}) is not one of {valid_statuses}. Make sure this entry can be found in that list.'
                 can_run = False
-                
-        format_str_scan = '%Y.%m.%d'
-        scan_date = job_params['scandate']
-        try:
-            scan_dt_obj = datetime.datetime.strptime(scan_date, format_str_scan)
-        except ValueError:
-            problems = problems + f'\nThe scan date you specified ({scan_date}) must be formatted as YYYY.mm.dd'
+        else:
+            problems = problems + f'\nYou must specify a status. Valid statuses are {valid_statuses}.'
             can_run = False
             
-        
-    
-        
+                
+
+        scan_date = job_params['scandate']
+        if scan_date:
+            try:
+                scan_dt_obj = datetime.datetime.strptime(scan_date, format_str_scan)
+            except ValueError:
+                problems = problems + f'\nThe scan date you specified ({scan_date}) must be formatted as YYYY.mm.dd'
+                can_run = False
+                
+        mr_id = job_params['mrid']
+        if not mr_id:
+            problems = problems + '\nYou did not specify an MR ID. Add a line to the email body with "MR ID:[value]"'
+            can_run = False
+            
+            
                 
         if not can_run:
             incomplete = os.path.join(bin_folder, 'processing_incomplete.txt')
@@ -309,7 +335,7 @@ with IMAPClient(HOST, ssl=True) as server:
             if job_params['status'] == 'scd':
                 job_params['status'] = 'sca'
                 
-            call_str = f'process_scd.py -i {workspace} -s 24'
+            call_str = f'process_scd.py --infolder {workspace} --steps 24 --auto 1 --redcap 0'
             
             if job_params["status"]:
                 call_str = call_str + f' -p {job_params["status"]}'            
@@ -324,14 +350,16 @@ with IMAPClient(HOST, ssl=True) as server:
                 call_str = call_str + ' -e trust'
                 
             # need to add these to process_scd.py
-            if job_params["age"]:
-                call_str = call_str + f' -y {job_params["age"]}'                
+            if job_params["dob"]:
+                call_str = call_str + f' -b {job_params["dob"]}'                
             if job_params["gender"]:
-                call_str = call_str + f' -s {job_params["gender"]}'                
+                call_str = call_str + f' -u {job_params["gender"]}'                
             if job_params["scandate"]:
-                call_str = call_str + f' -t {job_params["scandate"]}'                
+                call_str = call_str + f' -t {job_params["scandate"]}'  
+            """ # mrid will be used to name the working folder
             if job_params["mrid"]:
-                call_str = call_str + f' -m {job_params["mrid"]}'                
+                call_str = call_str + f' -m {job_params["mrid"]}'     
+            """
             if job_params["studyid"]:
                 call_str = call_str + f' -x {job_params["studyid"]}'
                 
@@ -340,16 +368,25 @@ with IMAPClient(HOST, ssl=True) as server:
             
             yag.send(sender_adr, f'Processing request - update (re: {subj})', msg)
         
+            max_time_mins = 20
+            max_time_secs = max_time_mins*60
+            
+            try:
+                subprocess.call(call_str, timeout=max_time_secs, shell=True)
+            except subprocess.TimeoutExpired:
+                timeout = os.path.join(bin_folder, 'timeout.txt')
+            
+                with open(timeout) as fp:
+                    # Create a text/plain message
+                    msg = fp.read()
+                yag.send(sender_adr, f'Processing request - timeout (re: {subj})', msg)
+                
         
         
         
         
         
     # wrap up
-    server.add_flags(all_uids, ['SEEN'])
-    
-    old_messages = server.search(f'BEFORE {before_date}')
-    server.delete_messages(old_messages)
 
 
 

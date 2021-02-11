@@ -39,7 +39,7 @@ def save_attachment(msg, download_folder="/tmp"):
 
 def extract_parameters_from_body(body):
     
-    the_dict = {'age':None,
+    the_dict = {'dob':None,
                 'artox':None,
                 'hct':None,
                 'status':None,
