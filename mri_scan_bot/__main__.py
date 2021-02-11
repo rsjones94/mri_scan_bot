@@ -24,8 +24,12 @@ import yagmail
 
 import email_tools as et
 
-creds = '/Users/skyjones/Documents/repositories/donahueprocessing_app_pw.txt'
+#creds = '/Users/skyjones/Documents/repositories/donahueprocessing_app_pw.txt'
+cred_name = 'donahueprocessing_app_pw.txt'
+
 home = os.path.dirname(os.path.dirname(__file__))
+creds = os.path.join(os.path.dirname(home), cred_name)
+
 bin_folder = os.path.join(home,'bin')
 
 dl_folder = os.path.join(bin_folder, 'temp_working') # neither dl_folder nor workspace should exist
