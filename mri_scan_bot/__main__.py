@@ -33,7 +33,9 @@ with open('/Users/manusdonahue/Desktop/cronjob_check.txt', 'rw') as f:
     f.write(f'__file__ is {__file__}\n')
     f.write(f'dirname is {os.path.dirname(__file__)}\n')
 """
-    
+
+process_scd_loc = '/Users/manusdonahue/Documents/Sky/repositories/scan-reporting/scan-reporting/process_scd.py'
+python_interp = '/Users/manusdonahue/opt/anaconda3/bin/python'
 
 
 
@@ -68,7 +70,7 @@ with open(checkout_file, 'r+') as f: # if the checkout doesn't exist, or if the 
 # big try block will be used to make sure we append 'free' to the checkout file no matter what
 try:
     
-    alert_file = os.path.join(home, 'bot_alert.txt')
+    alert_file = os.path.join(os.path.dirname(home), 'bot_alert.txt')
     with open(alert_file, 'a+') as f:
         f.write(f'\n\nBot scanning for requests. Time is {datetime.datetime.now()}')
     
@@ -218,7 +220,7 @@ try:
         if job_params['subject_status'] == 'scd':
             job_params['subject_status'] = 'sca'
             
-        call_str = f'process_scd.py --infolder {workspace} --steps 24 --auto 1 --redcap 0'
+        call_str = f'{python_interp} {process_scd_loc} --infolder {workspace} --steps 24 --auto 1 --redcap 0'
         
         if job_params["subject_status"]:
             call_str = call_str + f' -p {job_params["subject_status"]}'            
@@ -249,17 +251,21 @@ try:
         
         
         try:
+            
+            with open(alert_file, 'a+') as f:
+                f.write(f' {call_str}')
+                
             subprocess.call(call_str, timeout=max_time_secs, shell=True)
             processing_status = '2'
             
             with open(alert_file, 'a+') as f:
-                f.write(f' complete')
+                f.write(f'\n\t\tcomplete')
             
         except subprocess.TimeoutExpired:
             print('Process timed out')
             processing_status = '4'
             with open(alert_file, 'a+') as f:
-                f.write(f' !!!!! timed out !!!!!')
+                f.write(f'\n\t\t!!!!! timed out !!!!!')
             
         except Exception as e:
             with open(alert_file, 'a+') as f:
@@ -288,7 +294,7 @@ except Exception:
     pass
 
 finally:
-    with open(checkout_file, 'r+') as f: # if the checkout doesn't exist, or if the last line is 'free' then we can begin processing
+    with open(checkout_file, 'a+') as f: # if the checkout doesn't exist, or if the last line is 'free' then we can begin processing
         f.write(f'\nfree')
     
     
