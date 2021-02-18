@@ -96,6 +96,13 @@ try:
         email = row['contact_email']
         print(f'Processing scans for {email}')
         
+        email_subject = f'Processing request acknowledgement - record ID {row["record_id"]}'
+        email_body = f"""Your request has been acknowledged, and your data is currently being processed. Please allow 10-20 minutes to complete processing.
+        
+        You will recieve another email when processing is finished. Your record ID is {row['record_id']}.
+        """
+        et.send_message_with_attachment(email_subject, email_body, [email])
+        
         with open(alert_file, 'a+') as f:
             f.write(f'\n\tRequest for {email} ({row["mr_id"]}): ')
         
@@ -260,17 +267,50 @@ try:
             
             with open(alert_file, 'a+') as f:
                 f.write(f'\n\t\tcomplete')
+                
+            
+            email_subject = f'Processing request completed - record ID {row["record_id"]}'
+            email_body = f"""Your request has been completed. Results are attached.
+            """
+            
+            reporting_folder = os.path.join(workspace, 'reporting')
+            report_name = os.path.join(reporting_folder, f"row['mr_id']_report.pdf")
+            
+            attachments = [report_name]
+            if process_asl:
+                processed_folder = os.path.join(workspace, 'Processed')
+                cbf_map = os.path.join(processed_folder, f"PROCESSING_BOT_{row['mr_id']}_CBF_3D.nii.gz")
+                cbf_map_mni = os.path.join(processed_folder, 'CBF2mm', f"PROCESSING_BOT_{row['mr_id']}_CBF_MNI_2mm.nii.gz")
+                
+                attachments.append(cbf_map)
+                attachments.append(cbf_map_mni)
+            
+            et.send_message_with_attachment(email_subject, email_body, [email], attachments)
             
         except subprocess.TimeoutExpired:
             print('Process timed out')
             processing_status = '4'
             with open(alert_file, 'a+') as f:
                 f.write(f'\n\t\t!!!!! timed out !!!!!')
+                
+            email_subject = f'Processing request timeout - record ID {row["record_id"]}'
+            email_body = f"""Your request timed out while processing. Please resubmit your request if desired or get in touch with Sky (sky.jones@vumc.org).
+            
+            Sky has been copied on this email - hi Sky!
+            """
+            et.send_message_with_attachment(email_subject, email_body, [email, 'sky.jones@vumc.org'])
             
         except Exception as e:
             with open(alert_file, 'a+') as f:
                 f.write(f' ????? Unknown exception ?????')
                 f.write(f'\n\t\t{e}')
+                
+            email_subject = f'Processing request error - record ID {row["record_id"]}'
+            email_body = f"""Something went wrong when processing your request. Please resubmit your request if desired or get in touch with Sky (sky.jones@vumc.org).
+            
+            Sky has been copied on this email - hi Sky!
+            """
+            et.send_message_with_attachment(email_subject, email_body, [email, 'sky.jones@vumc.org'])
         
         
             
