@@ -34,10 +34,9 @@ home = os.path.dirname(os.path.dirname(__file__))
 creds = os.path.join(os.path.dirname(home), cred_name)
 
 bin_folder = os.path.join(home,'bin')
+scd_data_folder = '/Users/manusdonahue/Desktop/Projects/SCD/Data/'
 
-dl_folder = os.path.join(bin_folder, 'temp_working') # neither dl_folder nor workspace should exist
-
-#dl_folder = '/Users/skyjones/Documents/repositories'
+#dl_folder = os.path.join(bin_folder, 'temp_working')
 
 print('\nContacting the REDCap database...')
     
@@ -57,7 +56,11 @@ for i, row in project_data.iterrows():
     if stage not in ('', '0'):
         continue
     
-    row['processiing_stage'] = '1'
+    
+    email = row['contact_email']
+    print(f'Processing scans for {email}')
+    
+    row['processing_stage'] = '1'
     
     # update redcap to mark that processing has begun
     import_row = {}
@@ -66,13 +69,12 @@ for i, row in project_data.iterrows():
     np = project.import_records([import_row])
     
     record = row['record_id']
-    email = project_data['contact_email']
     
     if row['filetype'] == '1':
         exts_match = ['nii'] #.nii.gz
         exts = ['.nii.gz']
-    elif row['filetypes'] == '2':
-        exts_match = ['PAR', 'REC'] # PARREC
+    elif row['filetype'] == '2':
+        exts_match = ['par', 'rec'] # PARREC
         exts = ['.PAR', '.REC'] # PARREC
     
     job_params = {'dob':None,
@@ -134,20 +136,21 @@ for i, row in project_data.iterrows():
     elif gen == '3':
         job_params['subject_status'] = 'anemia'
         
-    dl_fields = {'t1':'T1',
-                 'asl_m0':'ASL_M0',
-                 'asl_source':f'SOURCE_ASL_PLD{pld_val}_LD{ld_val}',
-                 'asl':f'ASL_PLD{pld_val}_LD{ld_val}',
-                 'trust_source':'SOURCE_TRUST_VEIN',
-                 'trust':'TRUST_VEIN'}
+    dl_fields = {'t1':'3DT1_scan',
+                 'asl_m0':'ASL_M0_scan',
+                 'asl_source':f'SOURCE_ASL_PLD{pld_val}_LD{ld_val}_scan',
+                 'asl':f'ASL_PLD{pld_val}_LD{ld_val}_scan',
+                 'trust_source':'SOURCE_TRUST_VEIN_scan',
+                 'trust':'TRUST_VEIN_scan'}
     dl_fields_real = {}
     for f, pattern in dl_fields.items():
         for e,r in zip(exts_match, exts):
             dl_fields_real[(f'{f}_{e}')] = f'{pattern}{r}'
             
     
-    workspace_name = row['mr_id']
-    workspace = os.path.join(bin_folder, workspace_name)
+    workspace_name = f"PROCESSING_BOT_{row['mr_id']}"
+    #workspace = os.path.join(bin_folder, workspace_name)
+    workspace = os.path.join(scd_data_folder, workspace_name)
     acquired_folder = os.path.join(workspace, 'Acquired')
     
     if os.path.exists(workspace):
@@ -207,17 +210,20 @@ for i, row in project_data.iterrows():
     
     print(f'Call string: {call_str}')
     
-    """
+    
     try:
         subprocess.call(call_str, timeout=max_time_secs, shell=True)
+        processing_status = '2'
     except subprocess.TimeoutExpired:
         print('Process timed out')
-    """
+        processing_status = '4'
     
-    # send email with report and data
+    
+        
+    print('Cleaning up')
     
     # update redcap
-    row['processing_stage'] = '2'
+    row['processing_stage'] = processing_status
     
     import_row = {}
     for key, val in row.items():
