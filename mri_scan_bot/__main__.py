@@ -96,8 +96,10 @@ try:
         email = row['contact_email']
         print(f'Processing scans for {email}')
         
+        row['mr_id'] = row['mr_id'].replace(' ', '_')
+        
         email_subject = f'Processing request acknowledgement - record ID {row["record_id"]}'
-        email_body = f"""This email is acknowledging your recent request, which is currently being processed. Please allow 10-20 minutes to complete processing.
+        email_body = f"""This email is acknowledging your recent request, which is currently being processed. Please allow 10-20 minutes to complete processing for pCASL and 2-3 minutes to complete processing for TRUST.
         <br>
         <br>You will recieve another email when processing is finished. Your record ID is {row['record_id']}.
         <br>
@@ -265,14 +267,12 @@ try:
                 f.write(f' {call_str}')
                 
             subprocess.call(call_str, timeout=max_time_secs, shell=True)
-            processing_status = '2'
-            
-            with open(alert_file, 'a+') as f:
-                f.write(f'\n\t\tcomplete')
                 
             
             email_subject = f'Processing request completed - record ID {row["record_id"]}'
             email_body = f"""Your request has been completed. Results are attached.
+            <br>
+            <br><i>This email was automatically generated. Please direct questions to Sky at sky.jones@vumc.org and reference your record ID.
             """
             
             reporting_folder = os.path.join(workspace, 'reporting')
@@ -288,6 +288,10 @@ try:
                 attachments.append(cbf_map_mni)
             
             et.send_message_with_attachment(email_subject, email_body, [email], attachments)
+            processing_status = '2'
+            
+            with open(alert_file, 'a+') as f:
+                f.write(f'\n\t\tcomplete')
             
         except subprocess.TimeoutExpired:
             print('Process timed out')
@@ -305,6 +309,7 @@ try:
             et.send_message_with_attachment(email_subject, email_body, [email, 'sky.jones@vumc.org'])
             
         except Exception as e:
+            processing_status = '3'
             with open(alert_file, 'a+') as f:
                 f.write(f' ????? Unknown exception ?????')
                 f.write(f'\n\t\t{e}')
