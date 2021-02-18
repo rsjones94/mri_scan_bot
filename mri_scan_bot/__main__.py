@@ -97,14 +97,16 @@ try:
         print(f'Processing scans for {email}')
         
         email_subject = f'Processing request acknowledgement - record ID {row["record_id"]}'
-        email_body = f"""Your request has been acknowledged, and your data is currently being processed. Please allow 10-20 minutes to complete processing.
-        
-        You will recieve another email when processing is finished. Your record ID is {row['record_id']}.
+        email_body = f"""This email is acknowledging your recent request, which is currently being processed. Please allow 10-20 minutes to complete processing.
+        <br>
+        <br>You will recieve another email when processing is finished. Your record ID is {row['record_id']}.
+        <br>
+        <br><i>This email was automatically generated. Please direct questions to Sky at sky.jones@vumc.org and reference your record ID.
         """
         et.send_message_with_attachment(email_subject, email_body, [email])
         
         with open(alert_file, 'a+') as f:
-            f.write(f'\n\tRequest for {email} ({row["mr_id"]}): ')
+            f.write(f'\n\tRequest for {email} ({row["mr_id"]}, {row["record_id"]}): ')
         
         row['processing_stage'] = '1'
         
@@ -274,7 +276,7 @@ try:
             """
             
             reporting_folder = os.path.join(workspace, 'reporting')
-            report_name = os.path.join(reporting_folder, f"row['mr_id']_report.pdf")
+            report_name = os.path.join(reporting_folder, f"{row['mr_id']}_report.pdf")
             
             attachments = [report_name]
             if process_asl:
@@ -295,8 +297,10 @@ try:
                 
             email_subject = f'Processing request timeout - record ID {row["record_id"]}'
             email_body = f"""Your request timed out while processing. Please resubmit your request if desired or get in touch with Sky (sky.jones@vumc.org).
-            
-            Sky has been copied on this email - hi Sky!
+            <br>
+            <br>Sky has been copied on this email - hi Sky!
+            <br>
+            <br><i>This email was automatically generated. Please direct questions to Sky at sky.jones@vumc.org and reference your record ID.
             """
             et.send_message_with_attachment(email_subject, email_body, [email, 'sky.jones@vumc.org'])
             
@@ -307,8 +311,15 @@ try:
                 
             email_subject = f'Processing request error - record ID {row["record_id"]}'
             email_body = f"""Something went wrong when processing your request. Please resubmit your request if desired or get in touch with Sky (sky.jones@vumc.org).
-            
-            Sky has been copied on this email - hi Sky!
+            <br>
+            <br>Sky has been copied on this email - hi Sky!
+            <br>
+            <br><i>This email was automatically generated. Please direct questions to Sky at sky.jones@vumc.org and reference your record ID.
+            <br>
+            <br>----- error info -----
+            <br>
+            <br>during final steps
+            <br>{e}
             """
             et.send_message_with_attachment(email_subject, email_body, [email, 'sky.jones@vumc.org'])
         
@@ -331,7 +342,19 @@ try:
         f.write(f'\nSuccessfully finished. {n_complete} request(s) completed.')
         
 except Exception:
-    pass
+    email_subject = f'Processing request error - record ID {row["record_id"]}'
+    email_body = f"""Something went wrong when processing your request. Please resubmit your request if desired or get in touch with Sky (sky.jones@vumc.org).
+    <br>
+    <br>Sky has been copied on this email - hi Sky!
+    <br>
+    <br><i>This email was automatically generated. Please direct questions to Sky at sky.jones@vumc.org and reference your record ID.<\i>
+    <br>
+    <br>----- error info ----
+    <br>
+    <br>unexpected
+    <br>{e}
+    """
+    et.send_message_with_attachment(email_subject, email_body, [email, 'sky.jones@vumc.org'])
 
 finally:
     with open(checkout_file, 'a+') as f: # if the checkout doesn't exist, or if the last line is 'free' then we can begin processing
