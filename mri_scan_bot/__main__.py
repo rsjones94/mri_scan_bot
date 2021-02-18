@@ -70,7 +70,7 @@ with open(checkout_file, 'r+') as f: # if the checkout doesn't exist, or if the 
 # big try block will be used to make sure we append 'free' to the checkout file no matter what
 try:
     
-    alert_file = os.path.join(os.path.dirname(home), 'bot_alert.txt')
+    alert_file = os.path.join(home, 'bot_alert.txt')
     with open(alert_file, 'a+') as f:
         f.write(f'\n\nBot scanning for requests. Time is {datetime.datetime.now()}')
     
