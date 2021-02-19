@@ -186,12 +186,20 @@ try:
         elif gen == '3':
             job_params['subject_status'] = 'anemia'
             
+        """
         dl_fields = {'t1':'3DT1_scan',
                      'asl_m0':'ASL_M0_scan',
                      'asl_source':f'SOURCE_ASL_PLD{pld_val}_LD{ld_val}_scan',
                      'asl':f'ASL_PLD{pld_val}_LD{ld_val}_scan',
                      'trust_source':'SOURCE_TRUST_VEIN_scan',
                      'trust':'TRUST_VEIN_scan'}
+        """
+        dl_fields = {'t1':'3DT1_scan',
+                     'asl_m0':'ASL_M0_scan',
+                     'asl_source':f'SOURCE_ASL_PLD{pld_val}_LD{ld_val}_scan',
+                     'trust_source':'SOURCE_TRUST_VEIN_scan'
+                     }
+        
         dl_fields_real = {}
         for f, pattern in dl_fields.items():
             for e,r in zip(exts_match, exts):
